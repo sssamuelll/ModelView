@@ -64,7 +64,7 @@ Contributions are welcome! If you have ideas or find any bugs, feel free to open
 
 ### Contact
 
-For more information or queries, contact [yourname@domain.com](mailto:correo@samueldar.io).
+For more information or queries, contact [correo@samueldar.io](mailto:correo@samueldar.io).
 
 ### About the Author
 
