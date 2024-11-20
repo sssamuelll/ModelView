@@ -98,69 +98,77 @@ class OutputView extends StatelessWidget {
       String key, dynamic value, int depth, bool isLast) {
     Color textColor = _getTextColor(value);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 20,
-          child: CustomPaint(
-            size: const Size(20, 40),
-            painter: LinePainter(isLast: isLast),
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 20,
+            child: CustomPaint(
+              painter: LinePainter(isLast: isLast),
+            ),
           ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '"$key": ',
-                    style: const TextStyle(
-                      color: Color(0xFF9CDCFE),
-                      fontFamily: 'Roboto Mono',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '"$key": ',
+                      style: const TextStyle(
+                        color: Color(0xFF9CDCFE),
+                        fontFamily: 'Roboto Mono',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                  TextSpan(
-                    text: '$value',
-                    style: TextStyle(
-                      color: textColor,
-                      fontFamily: 'Roboto Mono',
-                      fontSize: 14,
+                    TextSpan(
+                      text: '$value',
+                      style: TextStyle(
+                        color: textColor,
+                        fontFamily: 'Roboto Mono',
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildSingleLineValue(dynamic value, int depth) {
     Color textColor = _getTextColor(value);
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(width: 20),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: Text(
-              '$value',
-              style: TextStyle(
-                color: textColor,
-                fontFamily: 'Roboto Mono',
-                fontSize: 14,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 20,
+            child: CustomPaint(
+              painter: LinePainter(isLast: false),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Text(
+                '$value',
+                style: TextStyle(
+                  color: textColor,
+                  fontFamily: 'Roboto Mono',
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -254,44 +262,47 @@ class _ExpandableNodeState extends State<ExpandableNode>
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 20,
-          child: CustomPaint(
-            size: const Size(20, 40),
-            painter: LinePainter(isLast: widget.isLast),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                GestureDetector(
-                  onTap: _toggleExpansion,
-                  child: Row(
-                    children: [
-                      Icon(
-                        _isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
-                        size: 16,
-                        color: Colors.grey,
-                      ),
-                      widget.title,
-                    ],
-                  ),
-                ),
-                SizeTransition(
-                  sizeFactor: _animation,
-                  child: widget.child,
-                ),
-              ],
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            width: 20,
+            child: CustomPaint(
+              painter: LinePainter(isLast: widget.isLast),
             ),
           ),
-        ),
-      ],
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: _toggleExpansion,
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isExpanded
+                              ? Icons.arrow_drop_down
+                              : Icons.arrow_right,
+                          size: 16,
+                          color: Colors.grey,
+                        ),
+                        widget.title,
+                      ],
+                    ),
+                  ),
+                  SizeTransition(
+                    sizeFactor: _animation,
+                    child: widget.child,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -312,15 +323,21 @@ class LinePainter extends CustomPainter {
 
     final Path path = Path();
 
+    // Altura del título (ajusta este valor si es necesario)
+    double titleHeight = 20.0;
+
+    // Línea vertical desde arriba hasta abajo
     path.moveTo(centerX, 0);
     if (isLast) {
-      path.lineTo(centerX, size.height / 2);
+      // Si es el último, la línea vertical termina en el centro del título
+      path.lineTo(centerX, titleHeight / 2);
     } else {
       path.lineTo(centerX, size.height);
     }
 
-    path.moveTo(centerX, size.height / 2);
-    path.lineTo(size.width, size.height / 2);
+    // Línea horizontal en el centro del título
+    path.moveTo(centerX, titleHeight / 2);
+    path.lineTo(size.width, titleHeight / 2);
 
     canvas.drawPath(path, paint);
   }
