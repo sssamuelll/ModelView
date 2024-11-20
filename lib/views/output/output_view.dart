@@ -1,194 +1,332 @@
 import 'package:flutter/material.dart';
-import 'package:model_view/theme/json_linter.dart';
 
+// Comenzamos con la clase OutputView
 class OutputView extends StatelessWidget {
   final dynamic parsedJson;
 
-  const OutputView({super.key, required this.parsedJson});
+  const OutputView({Key? key, required this.parsedJson}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ModelView - Output'),
       ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Padding(
         padding: const EdgeInsets.all(8.0),
         child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start, // Alinear a la izquierda
-            children: [
-              _buildJsonTree(parsedJson),
-            ],
-          ),
+          child: _buildJsonTree(parsedJson, 0, false),
         ),
       ),
     );
   }
 
-  Widget _buildJsonTree(dynamic data) {
+  Widget _buildJsonTree(dynamic data, int depth, bool isLast) {
     if (data is Map) {
-      return _buildMap(data.cast<String, dynamic>());
+      return _buildMap(data.cast<String, dynamic>(), depth, isLast);
     } else if (data is List) {
-      return _buildList(data);
+      return _buildList(data, depth);
     } else {
-      return _buildValue(data);
+      return _buildSingleLineValue(data, depth);
     }
   }
 
-  Widget _buildMap(Map<String, dynamic> map) {
-    String tooltipText = "${map.length} keys: " +
-        map.entries
-            .take(2)
-            .map((e) => "${e.key}: ${e.value.runtimeType}")
-            .join(", ") +
-        (map.length > 2 ? ", ..." : "");
+  Widget _buildMap(Map<String, dynamic> map, int depth, bool isParentLast) {
+    List<MapEntry<String, dynamic>> entries = map.entries.toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: entries.map((entry) {
+        bool isLastEntry = entry == entries.last;
 
-    String preview = "{ ${map.length} keys, types: " +
-        map.values.map((e) => e.runtimeType).toSet().join(", ") +
-        " }";
-
-    return Card(
-      color: const Color(0xFF1E1F26),
-      margin: const EdgeInsets.symmetric(vertical: 4.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.grey.shade800, width: 1),
-      ),
-      elevation: 2,
-      child: Tooltip(
-        message: tooltipText,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade900,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        textStyle: const TextStyle(color: Colors.white70, fontSize: 12),
-        child: ExpansionTile(
-          leading:
-              const Icon(Icons.insert_drive_file, color: Colors.blueAccent),
-          title: Text(
-            preview,
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'Roboto Mono',
-              fontSize: 15,
-            ),
+        Widget title = Text(
+          '"${entry.key}": ',
+          style: const TextStyle(
+            color: Color(0xFF9CDCFE),
+            fontFamily: 'Roboto Mono',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
-          tilePadding: const EdgeInsets.symmetric(
-              horizontal: 4.0), // Ajuste más compacto
-          childrenPadding:
-              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          children: map.entries.map((entry) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        );
+
+        if (entry.value is Map || entry.value is List) {
+          return ExpandableNode(
+            title: title,
+            isLast: isParentLast && isLastEntry,
+            child: _buildJsonTree(entry.value, depth + 1, isLastEntry),
+          );
+        } else {
+          return _buildKeyValueInSingleRow(
+              entry.key, entry.value, depth, isLastEntry);
+        }
+      }).toList(),
+    );
+  }
+
+  Widget _buildList(List<dynamic> list, int depth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: list.asMap().entries.map((entry) {
+        bool isLastEntry = entry.key == list.length - 1;
+
+        Widget title = Text(
+          '[${entry.key}]',
+          style: const TextStyle(
+            color: Color(0xFF9CDCFE),
+            fontFamily: 'Roboto Mono',
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+        );
+
+        if (entry.value is Map || entry.value is List) {
+          return ExpandableNode(
+            title: title,
+            child: _buildJsonTree(entry.value, depth + 1, isLastEntry),
+            isLast: isLastEntry,
+          );
+        } else {
+          return _buildSingleLineValue(entry.value, depth);
+        }
+      }).toList(),
+    );
+  }
+
+  Widget _buildKeyValueInSingleRow(
+      String key, dynamic value, int depth, bool isLast) {
+    Color textColor = _getTextColor(value);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 20,
+          child: CustomPaint(
+            size: const Size(20, 40),
+            painter: LinePainter(isLast: isLast),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: RichText(
+              text: TextSpan(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Text(
-                      '"${entry.key}": ',
-                      style: const TextStyle(
-                        color: jsonKeyColor,
-                        fontFamily: 'Roboto Mono',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                  TextSpan(
+                    text: '"$key": ',
+                    style: const TextStyle(
+                      color: Color(0xFF9CDCFE),
+                      fontFamily: 'Roboto Mono',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  Expanded(
-                    child: _buildJsonTree(entry.value),
+                  TextSpan(
+                    text: '$value',
+                    style: TextStyle(
+                      color: textColor,
+                      fontFamily: 'Roboto Mono',
+                      fontSize: 14,
+                    ),
                   ),
                 ],
               ),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildList(List<dynamic> list) {
-    String tooltipText = "List of ${list.length} items, types: " +
-        list.map((e) => e.runtimeType).toSet().join(", ");
-    String preview = "[ ${list.length} items, type: " +
-        (list.isNotEmpty ? list.first.runtimeType.toString() : "Unknown") +
-        " ]";
-
-    return Card(
-      color: const Color(0xFF1E1F26),
-      margin: const EdgeInsets.symmetric(vertical: 4.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-        side: BorderSide(color: Colors.grey.shade800, width: 1),
-      ),
-      elevation: 2,
-      child: Tooltip(
-        message: tooltipText,
-        decoration: BoxDecoration(
-          color: Colors.grey.shade900,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        textStyle: const TextStyle(color: Colors.white70, fontSize: 12),
-        child: ExpansionTile(
-          leading: const Icon(Icons.list_alt, color: Colors.greenAccent),
-          title: Text(
-            preview,
-            style: const TextStyle(
-              color: Colors.white,
-              fontFamily: 'Roboto Mono',
-              fontSize: 15,
-            ),
-          ),
-          tilePadding: const EdgeInsets.symmetric(horizontal: 4.0),
-          childrenPadding:
-              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          children: list.map((item) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 2.0),
-              child: _buildJsonTree(item),
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildValue(dynamic value) {
-    Color textColor;
-    IconData? icon;
-
-    if (value is String) {
-      textColor = jsonStringColor;
-      icon = Icons.text_fields;
-    } else if (value is num) {
-      textColor = jsonNumberColor;
-      icon = Icons.bar_chart;
-    } else if (value is bool) {
-      textColor = value ? Colors.greenAccent : Colors.redAccent;
-      icon = value ? Icons.check_circle : Icons.cancel;
-    } else {
-      textColor = Colors.grey;
-      icon = Icons.help_outline;
-    }
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Icon(icon, color: textColor, size: 18),
-        const SizedBox(width: 4.0),
-        Expanded(
-          child: Text(
-            '$value',
-            style: TextStyle(
-              color: textColor,
-              fontFamily: 'Roboto Mono',
-              fontSize: 14,
             ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildSingleLineValue(dynamic value, int depth) {
+    Color textColor = _getTextColor(value);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: 20),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: Text(
+              '$value',
+              style: TextStyle(
+                color: textColor,
+                fontFamily: 'Roboto Mono',
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Color _getTextColor(dynamic value) {
+    if (value is String) {
+      return const Color(0xFFCE9178);
+    } else if (value is num) {
+      return const Color(0xFFB5CEA8);
+    } else if (value is bool) {
+      return value ? Colors.greenAccent : Colors.redAccent;
+    } else {
+      return Colors.grey;
+    }
+  }
+}
+
+// Definimos el widget ExpandableNode
+class ExpandableNode extends StatefulWidget {
+  final Widget title;
+  final Widget child;
+  final bool isLast;
+  final bool initiallyExpanded;
+
+  const ExpandableNode({
+    Key? key,
+    required this.title,
+    required this.child,
+    required this.isLast,
+    this.initiallyExpanded = true,
+  }) : super(key: key);
+
+  @override
+  _ExpandableNodeState createState() => _ExpandableNodeState();
+}
+
+class _ExpandableNodeState extends State<ExpandableNode>
+    with SingleTickerProviderStateMixin {
+  bool _isExpanded = true;
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.initiallyExpanded;
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 200),
+    );
+
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+
+    if (_isExpanded) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ExpandableNode oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isExpanded) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  void _toggleExpansion() {
+    setState(() {
+      _isExpanded = !_isExpanded;
+
+      if (_isExpanded) {
+        _controller.forward();
+      } else {
+        _controller.reverse();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 20,
+          child: CustomPaint(
+            size: const Size(20, 40),
+            painter: LinePainter(isLast: widget.isLast),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 8.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GestureDetector(
+                  onTap: _toggleExpansion,
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isExpanded ? Icons.arrow_drop_down : Icons.arrow_right,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                      widget.title,
+                    ],
+                  ),
+                ),
+                SizeTransition(
+                  sizeFactor: _animation,
+                  child: widget.child,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Definimos el LinePainter
+class LinePainter extends CustomPainter {
+  final bool isLast;
+
+  LinePainter({required this.isLast});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double centerX = size.width / 2;
+    final Paint paint = Paint()
+      ..color = const Color(0xFF4E4E4E)
+      ..strokeWidth = 1.5
+      ..style = PaintingStyle.stroke;
+
+    final Path path = Path();
+
+    path.moveTo(centerX, 0);
+    if (isLast) {
+      path.lineTo(centerX, size.height / 2);
+    } else {
+      path.lineTo(centerX, size.height);
+    }
+
+    path.moveTo(centerX, size.height / 2);
+    path.lineTo(size.width, size.height / 2);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(LinePainter oldDelegate) {
+    return oldDelegate.isLast != isLast;
   }
 }

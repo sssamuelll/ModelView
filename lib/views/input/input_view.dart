@@ -1,12 +1,12 @@
-import 'dart:convert'; // Import for JSON encoding and decoding.
+import 'dart:convert';
+import 'dart:io'; // Necesario para manejar archivos en escritorio.
+import 'package:flutter/material.dart';
+import 'package:desktop_drop/desktop_drop.dart'; // Importa desktop_drop
+import 'package:cross_file/cross_file.dart'; // Importa XFile de cross_file
+import '../output/output_view.dart';
+import 'package:model_view/theme/json_linter.dart';
+import 'package:model_view/utils/constants.dart';
 
-import 'package:flutter/material.dart'; // Import for Flutter's Material Design components.
-import '../output/output_view.dart'; // Import for the output view screen.
-import 'package:model_view/theme/json_linter.dart'; // Import for JSON linter colors or theme.
-
-import 'package:model_view/utils/constants.dart'; // Import for other constants (like color values).
-
-// Main widget class, representing the JSON input screen.
 class InputView extends StatefulWidget {
   const InputView({super.key});
 
@@ -14,46 +14,38 @@ class InputView extends StatefulWidget {
   _InputViewState createState() => _InputViewState();
 }
 
-// State class for managing the dynamic behavior of InputView.
 class _InputViewState extends State<InputView> {
-  // Controller for the TextField, includes syntax highlighting.
   final _syntaxController = SyntaxHighlightingTextEditingController();
-  String? _lintError; // Variable to hold any lint (syntax) error message.
-  String _jsonText = ''; // Variable to store JSON text input by the user.
+  String? _lintError;
+  String _jsonText = '';
+  bool _isDragging = false;
 
   @override
   void initState() {
     super.initState();
-    _syntaxController.addListener(
-        _onJsonChanged); // Adds a listener for changes in the JSON input.
+    _syntaxController.addListener(_onJsonChanged);
   }
 
   @override
   void dispose() {
-    _syntaxController.removeListener(
-        _onJsonChanged); // Removes listener to prevent memory leaks.
-    _syntaxController
-        .dispose(); // Disposes the controller when the widget is destroyed.
+    _syntaxController.removeListener(_onJsonChanged);
+    _syntaxController.dispose();
     super.dispose();
   }
 
-  // Function to handle changes in JSON input.
   void _onJsonChanged() {
     setState(() {
-      _jsonText = _syntaxController
-          .text; // Updates the _jsonText with the current input.
-      _lintError = null; // Clears any previous lint errors on text change.
+      _jsonText = _syntaxController.text;
+      _lintError = null;
     });
   }
 
-  // Function to navigate to the OutputView, displaying parsed JSON if valid.
   void _navigateToOutput(BuildContext context) {
     try {
-      var decodedJson = jsonDecode(_jsonText); // Tries to parse the JSON input.
+      var decodedJson = jsonDecode(_jsonText);
       setState(() {
-        _lintError = null; // Clears any lint error if JSON is valid.
+        _lintError = null;
       });
-      // Navigates to OutputView if JSON is valid, passing the parsed JSON.
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -62,9 +54,32 @@ class _InputViewState extends State<InputView> {
       );
     } catch (e) {
       setState(() {
-        _lintError =
-            'Invalid JSON. Please check the syntax.'; // Shows error if JSON is invalid.
+        _lintError = 'Invalid JSON. Please check the syntax.';
       });
+    }
+  }
+
+  // Función para manejar el archivo arrastrado y leer su contenido.
+  Future<void> _onFileDropped(List<XFile> files) async {
+    if (files.isNotEmpty) {
+      final file = files.first;
+      if (file.name.endsWith('.json')) {
+        try {
+          final content = await file.readAsString();
+          setState(() {
+            _jsonText = content;
+            _syntaxController.text = _jsonText;
+          });
+        } catch (e) {
+          setState(() {
+            _lintError = 'Failed to read the file. Please try again.';
+          });
+        }
+      } else {
+        setState(() {
+          _lintError = 'Please drop a valid .json file.';
+        });
+      }
     }
   }
 
@@ -72,52 +87,87 @@ class _InputViewState extends State<InputView> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ModelView - Input'), // Title of the app bar.
+        title: const Text('ModelView - Input'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: TextField(
-                controller:
-                    _syntaxController, // Attaches the syntax controller for highlighting.
-                maxLines: null, // Allows unlimited lines in the text field.
-                cursorColor: Colors.white, // Sets cursor color.
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'monospace',
-                  color: Colors.white, // Default color of the text.
-                ),
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.all(8.0),
-                  filled: true,
-                  fillColor:
-                      Color(0xFF21252B), // Background color of the text field.
-                ),
+      body: Stack(
+        children: [
+          DropTarget(
+            onDragEntered: (details) {
+              setState(() {
+                _isDragging = true;
+              });
+            },
+            onDragExited: (details) {
+              setState(() {
+                _isDragging = false;
+              });
+            },
+            onDragDone: (details) async {
+              setState(() {
+                _isDragging = false;
+              });
+              await _onFileDropped(
+                  details.files); // Usa details.files con XFile
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      children: [
+                        TextField(
+                          controller: _syntaxController,
+                          maxLines: null,
+                          cursorColor: Colors.white,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontFamily: 'monospace',
+                            color: Colors.white,
+                          ),
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.all(8.0),
+                            filled: true,
+                            fillColor: Color(0xFF21252B),
+                          ),
+                        ),
+                        if (_isDragging)
+                          Container(
+                            color: Colors.blue.withOpacity(0.3),
+                            child: const Center(
+                              child: Text(
+                                'Suelta aquí tu archivo .json',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  if (_lintError != null)
+                    Text(
+                      _lintError!,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: () => _navigateToOutput(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: jsonBoolColor,
+                    ),
+                    child: const Text('Visualize'),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
-            // Displays error message if lint error exists.
-            if (_lintError != null)
-              Text(
-                _lintError!,
-                style: const TextStyle(color: Colors.red), // Error text color.
-              ),
-            const SizedBox(height: 20),
-            // Button to visualize the JSON in OutputView.
-            ElevatedButton(
-              onPressed: () =>
-                  _navigateToOutput(context), // Calls navigation function.
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    jsonBoolColor, // Uses color constant for button.
-              ),
-              child: const Text('Visualize'), // Button text.
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
