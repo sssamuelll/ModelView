@@ -36,10 +36,14 @@ class OutputView extends StatelessWidget {
 
   Widget _buildMap(Map<String, dynamic> map, int depth, bool isParentLast) {
     List<MapEntry<String, dynamic>> entries = map.entries.toList();
+    int lastIndex = entries.length - 1;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: entries.map((entry) {
-        bool isLastEntry = entry == entries.last;
+      children: entries.asMap().entries.map((entryWithIndex) {
+        int index = entryWithIndex.key;
+        MapEntry<String, dynamic> entry = entryWithIndex.value;
+        bool isLastEntry = index == lastIndex;
 
         Widget title = Text(
           '"${entry.key}": ',
@@ -54,12 +58,16 @@ class OutputView extends StatelessWidget {
         if (entry.value is Map || entry.value is List) {
           return ExpandableNode(
             title: title,
-            isLast: isParentLast && isLastEntry,
+            isLast: isLastEntry,
             child: _buildJsonTree(entry.value, depth + 1, isLastEntry),
           );
         } else {
           return _buildKeyValueInSingleRow(
-              entry.key, entry.value, depth, isLastEntry);
+            entry.key,
+            entry.value,
+            depth,
+            isLastEntry,
+          );
         }
       }).toList(),
     );
