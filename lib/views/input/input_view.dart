@@ -1,11 +1,10 @@
 import 'dart:convert';
-import 'dart:io'; // Necesario para manejar archivos en escritorio.
+// Necesario para manejar archivos en escritorio.
 import 'package:flutter/material.dart';
 import 'package:desktop_drop/desktop_drop.dart'; // Importa desktop_drop
 import 'package:cross_file/cross_file.dart'; // Importa XFile de cross_file
 import '../output/output_view.dart';
 import 'package:model_view/theme/json_linter.dart';
-import 'package:model_view/utils/constants.dart';
 
 class InputView extends StatefulWidget {
   const InputView({super.key});

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class OutputView extends StatelessWidget {
   final dynamic parsedJson;
 
-  const OutputView({Key? key, required this.parsedJson}) : super(key: key);
+  const OutputView({super.key, required this.parsedJson});
 
   @override
   Widget build(BuildContext context) {
@@ -92,8 +92,8 @@ class OutputView extends StatelessWidget {
         if (entry.value is Map || entry.value is List) {
           return ExpandableNode(
             title: title,
-            child: _buildJsonTree(entry.value, depth + 1, isLastEntry),
             isLast: isLastEntry,
+            child: _buildJsonTree(entry.value, depth + 1, isLastEntry),
           );
         } else {
           return _buildSingleLineValue(entry.value, depth);
@@ -110,7 +110,7 @@ class OutputView extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          SizedBox(
             width: 20,
             child: CustomPaint(
               painter: LinePainter(isLast: isLast),
@@ -156,7 +156,7 @@ class OutputView extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          SizedBox(
             width: 20,
             child: CustomPaint(
               painter: LinePainter(isLast: false),
@@ -201,12 +201,12 @@ class ExpandableNode extends StatefulWidget {
   final bool initiallyExpanded;
 
   const ExpandableNode({
-    Key? key,
+    super.key,
     required this.title,
     required this.child,
     required this.isLast,
     this.initiallyExpanded = true,
-  }) : super(key: key);
+  });
 
   @override
   _ExpandableNodeState createState() => _ExpandableNodeState();
@@ -274,7 +274,7 @@ class _ExpandableNodeState extends State<ExpandableNode>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
+          SizedBox(
             width: 20,
             child: CustomPaint(
               painter: LinePainter(isLast: widget.isLast),
